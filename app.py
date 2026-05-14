@@ -4,123 +4,96 @@ import plotly.express as px
 from datetime import datetime
 from financial_engine import *
 
-st.set_page_config(page_title="Institutional Wealth Advisor", layout="wide")
+st.set_page_config(page_title="JPMC Private Banking", layout="wide")
 
-# Estética de Terminal Financiera
+# Estética JP Morgan Chase Premium
 st.markdown("""
 <style>
-    .main { background-color: #0b0d10; color: #ffffff; }
-    .stNumberInput input { background-color: #1c1f26; color: white; border: 1px solid #30363d; }
-    .stButton>button { background-color: #1a3a5a; color: white; border: 1px solid #d4af37; border-radius: 5px; width: 100%; font-weight: bold; }
-    .stMetric { background-color: #161b22; border: 1px solid #30363d; padding: 10px; border-radius: 10px; }
+    .main { background-color: #001221; color: #ffffff; }
+    .stSelectbox, .stNumberInput, .stSlider { color: white; }
+    .stButton>button { background-color: #a3895d; color: #001221; border-radius: 0px; font-weight: bold; border: none; transition: 0.3s; }
+    .stButton>button:hover { background-color: #ffffff; color: #001221; }
+    h1, h2, h3 { color: #a3895d; font-family: 'Times New Roman', serif; }
+    .status-box { background-color: #00223d; padding: 25px; border-top: 4px solid #a3895d; margin-bottom: 20px; }
 </style>
 """, unsafe_allow_html=True)
 
-st.title("🏛️ Wealth Strategy & Management Terminal")
-st.caption("Quantitative Advisory Engine v4.0 | Asset Allocation Intelligence")
-st.markdown("---")
+st.title("🏛️ J.P. MORGAN CHASE PRIVATE CLIENT")
+st.caption("Strategic Asset Allocation Engine | Global Wealth Management")
 
-# Registro e Identificación
-user_name = st.text_input("Nombre del Inversionista:", placeholder="Ej. Martín Larrea")
+user_name = st.text_input("IDENTIFICACIÓN DEL TITULAR:", placeholder="Ej. Martín Larrea")
 
 if user_name:
-    st.header(f"Expediente Digital: {user_name}")
+    st.markdown(f"### Análisis de Portafolio: {user_name}")
     
-    # Cuestionario de Suitability
     with st.container():
         col1, col2, col3 = st.columns(3)
         
         with col1:
-            st.subheader("👤 Perfil Demográfico")
+            st.subheader("👤 Perfil Personal")
             edad = st.number_input("Edad:", 18, 95, 25)
-            obj = st.selectbox("Objetivo Principal:", ["Libertad Financiera", "Retiro Anticipado", "Protección de Patrimonio", "Educación/Hijos"])
-            horizonte = st.slider("Horizonte de Inversión (Años):", 1, 40, 10)
+            horizonte = st.slider("Horizonte de Inversión (Años):", 1, 40, 15)
+            conocimiento = st.select_slider("Competencia Financiera:", options=range(0, 11), help="0: Principiante, 10: Profesional")
 
         with col2:
-            st.subheader("💰 Salud Financiera")
-            ingresos = st.number_input("Ingresos Mensuales (USD):", value=2000)
-            ahorro = st.slider("% Ahorro Mensual sobre Ingresos:", 0, 100, 20)
-            estabilidad = st.radio("Estabilidad de Ingresos:", ["Baja", "Media", "Alta"], index=2)
-            deuda = st.radio("Carga de Deuda Actual:", ["Ninguna", "Moderada", "Alta"], index=0)
+            st.subheader("💰 Balance Financiero")
+            ahorro = st.slider("% Ahorro de Ingresos Mensuales:", 0, 100, 20)
+            estabilidad = st.radio("Estabilidad de Flujo:", ["Baja", "Media", "Alta"], index=2)
+            deuda = st.selectbox("Nivel de Endeudamiento:", ["Ninguna", "Moderada", "Alta"])
+            emergencia = st.checkbox("¿Tiene un fondo de emergencia (3-6 meses)?")
 
         with col3:
-            st.subheader("🧠 Psicología del Riesgo")
-            tolerancia = st.select_slider("Tolerancia a la Volatilidad:", options=["Baja", "Media", "Alta"], value="Media")
-            reaccion = st.selectbox("Si el mercado cae 25% en un mes:", ["Vendería por seguridad", "Mantendría la posición", "Aumentaría mi inversión"])
+            st.subheader("🧠 Perfil Psicológico")
+            reaccion = st.selectbox("Reacción ante caída de mercado (-20%):", ["Vender todo", "Dudar/Mantener", "Comprar más"])
+            obj = st.selectbox("Prioridad:", ["Seguridad", "Crecimiento", "Especulación"])
 
-    if st.button("GENERAR DIAGNÓSTICO Y ESTRATEGIA"):
-        # Preparación de datos para el motor
-        data_input = {
-            'edad': edad, 'horizonte': horizonte, 'ahorro_perc': ahorro,
-            'estabilidad': estabilidad, 'deudas': deuda, 'tolerancia': tolerancia
+    if st.button("CALCULAR ESTRATEGIA DE INVERSIÓN"):
+        data = {
+            'edad': edad, 'horizonte': horizonte, 'ahorro': ahorro,
+            'estabilidad': estabilidad, 'deuda': deuda, 'emergencia': emergencia,
+            'conocimiento': conocimiento, 'reaccion': reaccion
         }
         
-        score = calculate_professional_score(data_input)
-        profile = get_detailed_profile(score)
+        score = calculate_complex_score(data)
+        profile = get_detailed_profile(score, conocimiento)
         
         st.markdown("---")
-        st.header(f"Análisis Estratégico para {user_name}")
-        st.info(f"**Perfil Asignado:** {profile['name']} | **Score de Riesgo:** {int(score)}/100")
-        st.write(profile['desc'])
-
-        # Visualización de la Torta de Inversión
-        c_res1, c_res2 = st.columns([1.2, 1])
+        st.markdown(f"<div class='status-box'><h3>RECOMENDACIÓN ESTRATÉGICA: {profile['name']}</h3>"
+                    f"<p>Basado en un Score de Idoneidad de <strong>{int(score)}/100</strong>.</p></div>", unsafe_allow_html=True)
         
-        with c_res1:
-            df_plot = pd.DataFrame(list(profile['weights'].items()), columns=['Área de Inversión', 'Peso'])
-            fig = px.pie(df_plot, values='Peso', names='Área de Inversión', hole=0.6,
-                         color_discrete_sequence=px.colors.sequential.Blues_r,
-                         title=f"Distribución Patrimonial Sugerida")
-            fig.update_layout(template="plotly_dark", title_x=0.2)
+        res_col1, res_col2 = st.columns([1.5, 1])
+        
+        with res_col1:
+            df = pd.DataFrame(list(profile['weights'].items()), columns=['Activo', 'Peso'])
+            fig = px.pie(df, values='Peso', names='Activo', hole=0.6,
+                         color_discrete_sequence=['#a3895d', '#004a99', '#0070e0', '#306896', '#5b89ad', '#86aac4'])
+            fig.update_layout(paper_bgcolor='rgba(0,0,0,0)', font_color="white", showlegend=True)
             st.plotly_chart(fig, use_container_width=True)
             
-        with c_res2:
-            st.write("### Desglose por Clase de Activo")
-            monto_ahorro = ingresos * (ahorro / 100)
+        with res_col2:
+            st.write("### Desglose de Asset Allocation")
             for asset, weight in profile['weights'].items():
-                monto_mensual = monto_ahorro * weight
-                st.write(f"**{asset}:** {weight*100:.0f}%")
-                st.caption(f"Inversión mensual recomendada: ${monto_mensual:,.2f}")
+                st.write(f"**{asset}:** {weight*100:.1f}%")
                 st.progress(weight)
 
-        # Generación de la Guía Descargable
-        st.markdown("---")
-        fecha_actual = datetime.now().strftime('%d/%m/%Y')
-        report_txt = f"""GUÍA DE ESTRATEGIA PATRIMONIAL PERSONALIZADA
------------------------------------------------------
-PREPARADO PARA: {user_name.upper()}
-FECHA DE EMISIÓN: {fecha_actual}
-ASENSOR: QuantAdvisor AI Terminal
------------------------------------------------------
-
-1. DIAGNÓSTICO DEL PERFIL
-- Edad: {edad} años
-- Objetivo Declarado: {obj}
-- Perfil de Riesgo: {profile['name']}
-- Capacidad de Ahorro: {ahorro}% de los ingresos mensuales.
-
-2. HOJA DE RUTA ESTRATÉGICA (ASSET ALLOCATION)
-La inteligencia artificial ha determinado que su portafolio óptimo 
-debe diversificarse en las siguientes áreas:
-
-"""
+        # REPORTE DE DESCARGA
+        report = f"""
+        J.P. MORGAN PRIVATE CLIENT - INVESTMENT STRATEGY
+        -----------------------------------------------
+        TITULAR: {user_name.upper()}
+        FECHA: {datetime.now().strftime('%Y-%m-%d')}
+        SCORE DE IDONEIDAD: {int(score)}/100
+        CATEGORÍA: {profile['name']}
+        
+        1. ANÁLISIS DE RIESGO
+        Con un horizonte de {horizonte} años y conocimiento nivel {conocimiento}/10, 
+        se ha determinado que su perfil óptimo es {profile['name']}.
+        
+        2. DISTRIBUCIÓN DE ACTIVOS RECOMENDADA
+        """
         for a, w in profile['weights'].items():
-            report_txt += f"- {a}: {w*100:.0f}%\n"
+            report += f"\n- {a}: {w*100:.1f}%"
             
-        report_txt += f"""
-3. RECOMENDACIONES DE IMPLEMENTACIÓN
-- Inversión Mensual Sugerida: ${monto_ahorro:,.2f}
-- Rebalanceo: Se recomienda revisar estos pesos cada 12 meses.
-- Fondo de Emergencia: Antes de iniciar, asegure tener 3 a 6 meses de gastos en efectivo.
+        report += "\n\n3. NOTAS DE CUMPLIMIENTO\n- Los activos complejos se han ajustado según su nivel de competencia.\n- Se recomienda rebalancear el portafolio cada vez que un activo se desvíe un 5% de su peso objetivo."
 
---- 
-Documento generado con fines educativos basado en análisis de mercado moderno.
-"""
-        st.download_button(
-            label="📥 DESCARGAR GUÍA DE INVERSIÓN (TXT/PDF)",
-            data=report_txt,
-            file_name=f"Guia_Inversion_{user_name.replace(' ', '_')}.txt",
-            mime="text/plain"
-        )
-else:
-    st.warning("Por favor, introduzca su nombre para iniciar el proceso de asesoría.")
+        st.download_button("📥 DESCARGAR GUÍA DE INVERSIÓN PDF", data=report, file_name=f"Estrategia_JPMC_{user_name}.txt")
