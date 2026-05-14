@@ -1,65 +1,88 @@
 import streamlit as st
-import pandas as pd
 import plotly.express as px
 from datetime import datetime
-from financial_engine import *
+import financial_engine as engine
 
-st.set_page_config(page_title="JPMC Wealth Terminal", layout="wide")
+# Configuración de Marca JPMC
+st.set_page_config(page_title="JPMC Wealth Advisor", layout="wide")
 
-# Estilo Institucional
 st.markdown("""
-<style>
-    .main { background-color: #001e38; color: white; }
-    .stButton>button { background-color: #9d8553; color: white; border-radius: 0px; font-weight: bold; width: 100%; height: 3.5em; }
-    h1, h2, h3 { color: #9d8553; }
-    .card { background-color: #002b4d; padding: 20px; border-left: 5px solid #9d8553; }
-</style>
-""", unsafe_allow_html=True)
+    <style>
+    .stApp { background-color: #001e38; color: white; }
+    .stMetric { background-color: #002a4d; padding: 15px; border-radius: 10px; border-left: 5px solid #9d8553; }
+    h1, h2, h3 { color: #9d8553 !important; }
+    </style>
+    """, unsafe_allow_html=True)
 
-st.title("🏛️ J.P. MORGAN CHASE PRIVATE CLIENT")
-st.caption("Strategic Investment Advisory Protocol | Quantitative Analysis")
+st.title("🏦 Private Banking Terminal | Portfolio Strategy")
 
-nombre = st.text_input("IDENTIFICACIÓN DEL TITULAR:")
+# Inicio de Identidad
+nombre = st.text_input("Introduzca el nombre del titular de la cuenta:", "Inversionista")
+st.subheader(f"Bienvenido, {nombre}")
 
-if nombre:
-    st.header(f"Expediente de Inversión: {nombre}")
+with st.expander("📝 Cuestionario de Perfilamiento Profundo", expanded=True):
+    col1, col2, col3 = st.columns(3)
     
-    with st.expander("📝 CUESTIONARIO DE PERFILAMIENTO E IDONEIDAD", expanded=True):
-        c1, c2 = st.columns(2)
-        with c1:
-            st.subheader("📊 Datos Financieros")
-            edad = st.number_input("Edad:", 18, 95, 25)
-            horizonte = st.slider("Horizonte de Inversión (Años):", 1, 40, 15)
-            ahorro = st.slider("% Ahorro Mensual del Ingreso:", 0, 100, 20)
-            estabilidad = st.radio("Estabilidad de Ingresos:", ["Baja", "Media", "Alta"], index=2)
-            
-        with c2:
-            st.subheader("🧠 Psicología y Conocimiento")
-            conocimiento = st.select_slider("Conocimiento Financiero:", options=range(0, 11))
-            reaccion = st.selectbox("Si su inversión cae 20%, ¿qué hace?", ["Vender todo", "Dudar", "Comprar más"])
-            obj = st.selectbox("Objetivo Principal:", ["Preservar", "Crecer", "Especular"])
-
-    if st.button("GENERAR ESTRATEGIA PATRIMONIAL"):
-        data = {'edad': edad, 'horizonte': horizonte, 'ahorro': ahorro, 'estabilidad': estabilidad, 'reaccion': reaccion}
-        score = calculate_score(data)
-        profile = get_detailed_profile(score, conocimiento)
+    with col1:
+        st.write("**Datos Financieros**")
+        edad = st.number_input("Edad", 18, 100, 30)
+        ingresos = st.number_input("Ingresos Anuales (USD)", 0, 1000000, 50000)
+        ahorro_mensual = st.number_input("Capacidad de Ahorro Mensual (USD)", 0, 50000, 1000)
         
-        st.markdown("---")
-        st.markdown(f"<div class='card'><h3>RESULTADO: {profile['name']}</h3><p>Score de Riesgo: {int(score)}/100</p></div>", unsafe_allow_html=True)
+    with col2:
+        st.write("**Perfil Psicológico**")
+        horizonte = st.slider("Horizonte de Inversión (Años)", 1, 40, 10)
+        crisis = st.select_slider("Reacción ante caída del 20%", options=[1, 2, 3, 4, 5], value=3, 
+                                 help="1: Pánico/Venta, 5: Comprar más")
+        estabilidad = st.slider("Estabilidad Laboral (1-10)", 1, 10, 7)
         
-        col_res1, col_res2 = st.columns([1.5, 1])
-        with col_res1:
-            df = pd.DataFrame(list(profile['weights'].items()), columns=['Activo', 'Peso'])
-            fig = px.pie(df, values='Peso', names='Activo', hole=0.5, color_discrete_sequence=['#9d8553', '#004a99', '#0070e0', '#306896'])
-            st.plotly_chart(fig, use_container_width=True)
-            
-        with col_res2:
-            st.write("### Desglose de Inversión")
-            for k, v in profile['weights'].items():
-                st.write(f"**{k}:** {v*100:.1f}%")
-                st.progress(v)
+    with col3:
+        st.write("**Conocimiento Técnico**")
+        knowledge = st.select_slider("Nivel de Conocimiento Financiero", options=list(range(11)), value=5)
 
-        # Reporte
-        reporte = f"JPMC WEALTH REPORT - {nombre.upper()}\nPerfil: {profile['name']}\n\nDistribución:\n"
-        for k, v in profile['weights'].items(): reporte += f"- {k}: {v*100:.1f}%\n"
-        st.download_button("📥 DESCARGAR GUÍA ESTRATÉGICA", data=reporte, file_name=f"Estrategia_{nombre}.txt")
+if st.button("Generar Estrategia de Inversión"):
+    data = {
+        'edad': edad, 'horizonte': horizonte * 2.5, # Escalamiento para scoring
+        'ahorro_mensual': ahorro_mensual, 
+        'estabilidad': estabilidad * 10, 
+        'reaccion_crisis': crisis * 20
+    }
+    
+    score = engine.calculate_score(data)
+    perfil, pesos = engine.get_detailed_profile(score, knowledge)
+    
+    st.divider()
+    
+    # Resultados
+    c_res1, c_res2 = st.columns([1, 1])
+    
+    with c_res1:
+        st.metric("Puntaje de Riesgo", f"{int(score)}/100")
+        st.subheader(f"Perfil Asignado: {perfil}")
+        
+        # Gráfico
+        fig = px.pie(values=list(pesos.values()), names=list(pesos.keys()), 
+                     color_discrete_sequence=px.colors.sequential.Aggrnyl)
+        fig.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)', font_color="white")
+        st.plotly_chart(fig)
+        
+    with c_res2:
+        st.write("### Desglose de Inversión Mensual")
+        for activo, peso in pesos.items():
+            monto = ahorro_mensual * peso
+            if peso > 0:
+                st.write(f"**{activo}:** ${monto:,.2f} ({peso*100:.1f}%)")
+        
+        # Generar Reporte TXT
+        reporte_content = f"""
+        GUÍA ESTRATÉGICA DE INVERSIÓN - JPMC TERMINAL
+        Fecha: {datetime.now().strftime('%Y-%m-%d')}
+        Titular: {nombre}
+        Perfil: {perfil} (Score: {int(score)})
+        -------------------------------------------
+        DISTRIBUCIÓN RECOMENDADA:
+        """
+        for k, v in pesos.items():
+            if v > 0: reporte_content += f"\n- {k}: {v*100}%"
+            
+        st.download_button("Descargar Guía Estratégica", reporte_content, file_name="Estrategia_Inversion.txt")
