@@ -1,38 +1,48 @@
-import pandas as pd
 import numpy as np
-import yfinance as yf
-from datetime import datetime
 
-def get_macro_data():
-    # Representantes de cada clase de activo para el análisis de mercado
-    proxies = {
-        "Acciones (Crecimiento)": "QQQ",
-        "Acciones (Valor/Dividendos)": "VYM",
-        "Renta Fija (Bonos)": "BND",
-        "Metales Preciosos (Oro/Plata)": "GLD",
-        "Bienes Raíces (REITs)": "VNQ",
-        "Criptoactivos": "BTC-USD"
-    }
-    data = yf.download(list(proxies.values()), period="5y")['Close']
-    returns = data.pct_change().mean() * 252
-    volatility = data.pct_change().std() * np.sqrt(252)
-    
-    # Invertimos el mapeo para devolver nombres legibles
-    inv_proxies = {v: k for k, v in proxies.items()}
-    return {inv_proxies[t]: {"ret": returns[t], "vol": volatility[t]} for t in proxies.values()}
+def get_detailed_profile(score):
+    """Mapea el score a una categoría institucional con pesos macro."""
+    if score <= 25:
+        return {
+            "name": "Conservador (Wealth Preservation)", 
+            "weights": {"Renta Fija (Bonos)": 0.60, "Metales Preciosos (Oro/Plata)": 0.20, "Efectivo/Money Market": 0.15, "Acciones Defensivas": 0.05},
+            "desc": "Prioridad absoluta en proteger el capital. Ideal para horizontes cortos o alta aversión al riesgo."
+        }
+    elif score <= 50:
+        return {
+            "name": "Moderado (Balanced Growth)", 
+            "weights": {"Acciones (S&P 500/Global)": 0.40, "Renta Fija (Bonos)": 0.35, "Bienes Raíces (REITs)": 0.15, "Metales Preciosos": 0.10},
+            "desc": "Equilibrio entre crecimiento y protección. Adecuado para metas a mediano plazo."
+        }
+    elif score <= 75:
+        return {
+            "name": "Crecimiento (Strategic Alpha)", 
+            "weights": {"Acciones (Crecimiento/Tech)": 0.50, "Acciones Internacionales": 0.20, "Bienes Raíces (REITs)": 0.15, "Criptoactivos": 0.10, "Metales Preciosos": 0.05},
+            "desc": "Busca superar la inflación con una volatilidad aceptable. Enfoque en acumulación."
+        }
+    else:
+        return {
+            "name": "Agresivo (High Appreciation)", 
+            "weights": {"Acciones Crecimiento/Tech": 0.55, "Criptoactivos": 0.25, "Mercados Emergentes": 0.10, "Venture Capital/Startups": 0.10},
+            "desc": "Máxima exposición al riesgo para maximizar el retorno compuesto. Solo para horizontes largos."
+        }
 
-def generate_strategic_allocation(score):
-    market_stats = get_macro_data()
+def calculate_professional_score(data):
+    """Algoritmo de scoring multivariable."""
+    score = 0
+    # 1. Factor Edad (Inversamente proporcional al riesgo)
+    score += (80 - data['edad']) * 0.35
     
-    # Lógica de IA para pesos basada en Risk Score (1-100)
-    # A mayor score, más peso a Cripto y Crecimiento. A menor score, más Bonos y Oro.
-    weights = {}
+    # 2. Situación Financiera (Capacidad de Ahorro y Estabilidad)
+    score += (data['ahorro_perc'] * 0.6)
+    if data['estabilidad'] == "Alta": score += 15
+    if data['deudas'] == "Ninguna": score += 10
     
-    if score <= 30: # Conservador
-        weights = {"Renta Fija (Bonos)": 0.50, "Metales Preciosos (Oro/Plata)": 0.20, "Acciones (Valor/Dividendos)": 0.20, "Bienes Raíces (REITs)": 0.10}
-    elif score <= 70: # Moderado
-        weights = {"Acciones (Crecimiento)": 0.30, "Acciones (Valor/Dividendos)": 0.30, "Renta Fija (Bonos)": 0.20, "Bienes Raíces (REITs)": 0.10, "Metales Preciosos (Oro/Plata)": 0.05, "Criptoactivos": 0.05}
-    else: # Agresivo
-        weights = {"Acciones (Crecimiento)": 0.50, "Criptoactivos": 0.25, "Bienes Raíces (REITs)": 0.15, "Acciones (Valor/Dividendos)": 0.10}
-        
-    return weights
+    # 3. Horizonte Temporal
+    score += (data['horizonte'] * 2.5)
+    
+    # 4. Tolerancia Psicológica
+    tol_map = {"Baja": -10, "Media": 10, "Alta": 25}
+    score += tol_map[data['tolerancia']]
+    
+    return np.clip(score, 5, 100)
